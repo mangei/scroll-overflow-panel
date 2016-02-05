@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Scroll Panel Effect</title>
+	<style>
+		body {
+			padding: 0;
+			margin: 0;
+			font-size: 24pt;
+		}
+
+		.container {
+			height: 700px;
+			width: 400px;
+			margin: 50px;
+		}
+
+		.scroll-container {
+			position: relative;
+			overflow: hidden;
+			width: inherit;
+			height: inherit;
+		}
+
+		.scroll-content {
+			position: relative;
+			overflow: auto;
+			height: inherit;
+			width: inherit;
+		}
+
+		.scroll-panel {
+			z-index: 5;
+		}
+
+		#topbox, #bottombox {
+			position: absolute;
+			height: 300px;
+			width: 100%;
+		}
+
+		#topbox {
+			background-color: lightblue;
+		}
+
+		#bottombox {
+			background-color: lightgreen;
+		}
+	</style>
+	<script src="http://code.jquery.com/jquery-1.12.0.min.js"></script>
+</head>
+<body>
+	<div class="container">
+		<div class="scroll-container">
+
+			<div id="topbox" class="scroll-panel">
+				Wird geladen ...
+			</div>
+			<div id="bottombox" class="scroll-panel">
+				Wird geladen ...
+			</div>
+
+			<div class="scroll-content">
+				<div>
+					Lorem ipsum dolor sit amet, consectetur adipisicing elit,
+					sed do eiusmod tempor incididunt ut labore et dolore magna
+					aliqua. Ut enim ad minim veniam, quis nostrud exercitation
+					ullamco laboris nisi ut aliquip ex ea commodo consequat.
+					Duis aute irure dolor in reprehenderit in voluptate velit
+					esse cillum dolore eu fugiat nulla pariatur. Excepteur
+					sint occaecat cupidatat non proident, sunt in culpa qui
+					officia deserunt mollit anim id est laborum.
+				</div>
+				<div>
+					Lorem ipsum dolor sit amet, consectetur adipisicing elit,
+					sed do eiusmod tempor incididunt ut labore et dolore magna
+					aliqua. Ut enim ad minim veniam, quis nostrud exercitation
+					ullamco laboris nisi ut aliquip ex ea commodo consequat.
+					Duis aute irure dolor in reprehenderit in voluptate velit
+					esse cillum dolore eu fugiat nulla pariatur. Excepteur
+					sint occaecat cupidatat non proident, sunt in culpa qui
+					officia deserunt mollit anim id est laborum.
+				</div>
+				<div>
+					Lorem ipsum dolor sit amet, consectetur adipisicing elit,
+					sed do eiusmod tempor incididunt ut labore et dolore magna
+					aliqua. Ut enim ad minim veniam, quis nostrud exercitation
+					ullamco laboris nisi ut aliquip ex ea commodo consequat.
+					Duis aute irure dolor in reprehenderit in voluptate velit
+					esse cillum dolore eu fugiat nulla pariatur. Excepteur
+					sint occaecat cupidatat non proident, sunt in culpa qui
+					officia deserunt mollit anim id est laborum.
+				</div>
+				<div>
+					Lorem ipsum dolor sit amet, consectetur adipisicing elit,
+					sed do eiusmod tempor incididunt ut labore et dolore magna
+					aliqua. Ut enim ad minim veniam, quis nostrud exercitation
+					ullamco laboris nisi ut aliquip ex ea commodo consequat.
+					Duis aute irure dolor in reprehenderit in voluptate velit
+					esse cillum dolore eu fugiat nulla pariatur. Excepteur
+					sint occaecat cupidatat non proident, sunt in culpa qui
+					officia deserunt mollit anim id est laborum.
+				</div>
+			</div>
+		</div>
+	</div>
+	<script>
+
+		scrollPanelPlugin($('.scroll-container').find('.scroll-content'), $('.scroll-container').find('#topbox'), 'top', function() { console.log('LOAD top'); });
+
+		scrollPanelPlugin($('.scroll-container').find('.scroll-content'), $('.scroll-container').find('#bottombox'), 'bottom', function() { console.log('LOAD bottom'); });
+
+		function scrollPanelPlugin(content, panel, position, finishCallback) {
+			var plugin = this;
+			plugin.name = '';
+
+			var basisMargin = -1 * panel.height();
+
+			// configuration
+			var speed = 5;
+			var hideTimeout = 1000;
+
+			// start position of panel
+			panel.css(position, basisMargin);
+
+			var currentMargin = 0;
+			plugin.isFinished = false;
+
+			// create unique id for event handling
+			if(scrollPanelPlugin.id === undefined) {
+				scrollPanelPlugin.id = 0;
+			}
+			var id = scrollPanelPlugin.id++;
+
+			// create timeout for automatic hide
+			var oldTimeout = undefined;
+			var resetTimeout = function() {
+				clearTimeout(oldTimeout);
+				oldTimeout = setTimeout (function() {
+					currentMargin = 0;
+					panel.css('transition', '0.5s ease-in-out');
+					panel.css(position, basisMargin);
+					
+				}, hideTimeout);
+			};
+
+			content.on('mousewheel.' + plugin.name + '-' + id, function(event) {
+
+				if(plugin.isFinished) {
+					event.preventDefault();
+				}
+
+				// reset timer for automatic hide
+				resetTimeout();
+
+				var isAtBorder = false;
+				if(position === 'top') {
+					// is at top?
+					isAtBorder = content.scrollTop() === 0;
+				} else if(position === 'bottom') {
+
+			   		// calculate height of the inner elements
+			   		var contentInnerHeight = 0;
+			   		content.children().each(function(){
+			   			contentInnerHeight += $(this).outerHeight(true);
+			   		});
+
+					// is at bottom? (with some epsilon)
+					isAtBorder = content.scrollTop() + content.height() >= contentInnerHeight - 1;
+				}
+
+				if(isAtBorder) {
+					var marginWasZero = currentMargin === 0;
+
+			   		// calculate the new margin
+			   		currentMargin += speed;
+			   		var newMargin = basisMargin + currentMargin;
+			   		newMargin = Math.min(0, newMargin);
+
+				   	// we only jump if the margin was not zero before,
+				   	// because if we start at the top and scroll down
+				   	// it would show the panel, which is not intended
+				   	if(!marginWasZero) {
+				   		panel.css('transition', '');
+				   		panel.css(position, newMargin);
+				   	}
+
+				   	// if the panel is fully visible, we are finished
+				   	if(newMargin === 0) {
+				   		content.off('mousewheel.' + plugin.name + '-' + id);
+				   		clearTimeout(oldTimeout);
+				   		plugin.isFinished = true;
+				   		finishCallback();
+				   	}
+				   } else {
+		   			// reset panel, if we scroll into tje opposite direction
+		   			// of the border
+		   			currentMargin = 0;
+		   			panel.css('transition', '0.5s ease-in-out');
+		   			panel.css(position, basisMargin);
+		   		}
+		   	});
+		}
+	</script>
+</body>
+</html>
